@@ -22,7 +22,7 @@ The course treats the application of R programming to different areas of bioinfo
 *2. High Quality Graphics in R*
 
 * [Based on Chapter 3 in MSMB](https://web.stanford.edu/class/bios221/book/Chap-Graphics.html)
-* Additional reading material: [Fundamentals of Data Visualization](https://clauswilke.com/dataviz/). 
+* Additional reading material: [Fundamentals of Data Visualization](https://clauswilke.com/dataviz/),  
                                [ggplot2 Book](https://ggplot2-book.org/)
 
 *3. Testing*
