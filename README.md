@@ -8,7 +8,7 @@ The course treats the application of R programming to different areas of bioinfo
 
 ## Logistics  
 
-- Instructors: Clemens Kreutz, Martin Treppner
+- Instructors: Clemens Kreutz, Martin Treppner, Eva Brombacher, Eva Kohnert
 - Lectures: 11.01.2021 and 18.01.2021 from 9am to 5pm
 
 ## Schedule (subject to change) 
