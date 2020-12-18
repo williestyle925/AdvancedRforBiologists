@@ -23,13 +23,15 @@ The course treats the application of R programming to different areas of bioinfo
 
 * [Based on Chapter 3 in MSMB](https://web.stanford.edu/class/bios221/book/Chap-Graphics.html)
 * Additional reading material:   
-[Fundamentals of Data Visualization](https://clauswilke.com/dataviz/),  
-                               [ggplot2 Book](https://ggplot2-book.org/)
+[Fundamentals of Data Visualization](https://clauswilke.com/dataviz/)
+
+[ggplot2 Book](https://ggplot2-book.org/)
 
 *3. Testing*
 
 * [Based on Chapter 6 in MSMB](https://web.stanford.edu/class/bios221/book/Chap-Testing.html)
-* Additional reading material: [Large-Scale Inference: Empirical Bayes Methods for Estimation, Testing, and Prediction](https://statweb.stanford.edu/~ckirby/brad/LSI/monograph_CUP.pdf)
+* Additional reading material:  
+[Large-Scale Inference: Empirical Bayes Methods for Estimation, Testing, and Prediction](https://statweb.stanford.edu/~ckirby/brad/LSI/monograph_CUP.pdf)
 
 **18.01.2021:**
 
