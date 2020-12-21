@@ -11,6 +11,12 @@ The course treats the application of R programming to different areas of bioinfo
 - Instructors: Clemens Kreutz, Martin Treppner, Eva Brombacher, Eva Kohnert
 - Lectures: 11.01.2021 and 18.01.2021 from 9am to 5pm
 
+## Installing R and RStudio
+
+There is a short and at the same time understandable guide to downloading and installing R and RStudio in Garrett Grolemund's book:
+
+[Hands-On Programming with R: Installing R and RStudio](https://rstudio-education.github.io/hopr/starting.html)
+
 ## Schedule (subject to change) 
 
 **11.01.2021:**
