@@ -91,7 +91,7 @@ density on the y-axis!
 **Note:** You should use the formula notation for this.
 
 ```{r, fig.wide = TRUE}
-boxplot(density ~ Run, data = DNase)
+
 ```
 </div>
 
@@ -173,8 +173,7 @@ ggplot(groups, aes(x = sampleGroup, y = n)) +
 Try to produce a horizontal barplot!
 
 ```{r, fig.wide = TRUE}
-ggplot(groups, aes(x = n, y = sampleGroup)) +
-  geom_bar(stat = "identity")
+
 ```
 </div>
 
@@ -320,16 +319,11 @@ we set the color aesthetics for all layers, i.e., move it into the argument list
 of ggplot? What happens if we omit the call to scale_color_discrete?
 
 ```{r, message=FALSE, warning=FALSE}
-ggplot( dftx, aes( x = X1426642_at, y = X1418765_at, color = sampleColour ))  +
-  geom_point( shape = 19 ) +
-  geom_smooth( method = "loess" ) +
-  scale_color_discrete( guide = FALSE )
+
 ```
 
 ```{r, message=FALSE}
-ggplot( dftx, aes( x = X1426642_at, y = X1418765_at ))  +
-  geom_point( aes( color = sampleColour), shape = 19 ) +
-  geom_smooth( method = "loess" )
+
 ```
 </div>
 
@@ -411,8 +405,7 @@ Create boxplot and violin plots of the same data as we used for the barplots!
 ### Boxplots  
 
 ```{r, message=FALSE, warning=FALSE}
-p <- ggplot(genes, aes( x = gene, y = value, fill = gene))
-p + geom_boxplot()
+
 ```
 
 ### Violin plots  
@@ -459,7 +452,7 @@ One way to do this is to adjust the transparency of the dots by changing the
 `alpha` value.
 
 ```{r}
-scp  + geom_point(alpha = 0.1)
+
 ```
 </div>
 
@@ -536,8 +529,7 @@ ggplot(dftx, aes( x = X1426642_at, y = X1418765_at)) +
 Try displaying the facet plot in two rows using the `facet_wrap` function!
 
 ```{r}
-ggplot(dftx, aes( x = X1426642_at, y = X1418765_at)) +
-  geom_point() + facet_wrap( . ~ lineage, nrow=2 )
+
 ```
 </div>
 
