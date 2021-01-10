@@ -243,14 +243,7 @@ comparison of the control group with treatment 1 and treatment 2 and store
 both results in a list.
 
 ```{r}
-t_list = with(PlantGrowth,
-          list(t.test(weight[group =="ctrl"],
-                 weight[group =="trt2"],
-                 var.equal = TRUE),
-          t.test(weight[group =="ctrl"],
-                 weight[group =="trt1"],
-                 var.equal = TRUE)))
-t_list
+
 ```
 </div>
 
@@ -537,9 +530,7 @@ Prove that the probability does indeed become very close to 1 when $m_0$
 is large.
 
 ```{r}
-m_0 <- c(5, 10, 25, 50, 100, 1000)
-alpha <- 0.05
-1 - (1 - alpha)^m_0
+
 ```
 </div>
 
@@ -695,8 +686,7 @@ Look at the `p.adjust` function and try to reproduce the results from the above
 analysis!
 
 ```{r}
-awde <- mutate(awde, p_adjust_function = p.adjust(pvalue, method = "BH"))
-head(awde)
+
 ```
 </div>
 
