@@ -35,7 +35,7 @@ readers of our publications.
 
 You can find a particularly impressive example of a good visualization here:
 
-![Source: https://graphics.wsj.com/infectious-diseases-and-vaccines/](/Users/martintreppner/Dropbox/PhD/teaching/AdvancedRforBiologists/plots/measles.png)
+![Source: https://graphics.wsj.com/infectious-diseases-and-vaccines/](measles.png)
 
 # Plotting in base R  
 
