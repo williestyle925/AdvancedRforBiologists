@@ -1,0 +1,50 @@
+---
+title: "Markdown_Simulation"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Simulation Hand-on
+
+First, the simulation function is defined
+```{r}
+SimuData <- function(nrow,ncol,mu=0,sd=1){
+  dat <- matrix(rnorm(nrow*ncol,mean=mu,sd=1),nrow=nrow)
+}
+```
+
+Then, the data is simulated
+```{r}
+dat1 <- SimuData(10000,10)
+dat2 <- SimuData(10000,10)
+```
+
+Now a function is defined which performs the t-test row by row for two data matrices. 
+Here, only the p-values are returned.
+```{r}
+PerformTTests <- function(dataMatrix1, dataMatrix2){
+  if (dim(dataMatrix1)[1] != dim(dataMatrix2)[1])
+    stop("Both matrices should have the same number of rows.") # throw an error message
+  
+  p <- array()
+  for (i in 1:dim(dataMatrix1)[1]){
+    p[i] <- t.test(dataMatrix1[i,],dataMatrix2[i,])$p.value
+  }
+  p
+}
+```
+
+Now, the function is called and the histogram is plotted:
+```{r}
+pvalues <- PerformTTests(dat1,dat2)
+hist(pvalues,breaks=100)
+```
+

@@ -1,0 +1,98 @@
+---
+title: "Functions and Scoping"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+## Functions and the scope of variables
+
+A standard example for a function:
+```{r }
+rm(list=ls())
+fun <- function() {
+  x <- 1
+  y <- 2
+  c(x, y)
+}
+fun()
+```
+
+Another example:
+```{r}
+fun <- function(x) length(unique(x))
+fun(c(1,1,1,2,3))
+```
+Syntax for default arguments:
+
+```{r}
+SimData <- function(N=1, mu=0, sigma=1){
+  y <- rnorm(N)*sigma + mu
+  y
+}
+SimData()
+SimData(10)
+SimData(10,sigma=1000)
+```
+
+
+Is x known inside the function?
+```{r}
+rm(list=ls())
+x <- 2
+fun <- function() {
+  y <- 1
+  c(x, y)
+}
+fun()
+```
+
+Is fun1 known inside of fun2?
+```{r}
+rm(list=ls())
+fun1 <- function(x) x + 1
+fun2 <- function() {
+  fun1(10)
+}
+fun2()
+```
+
+fun1 returns a function.
+What's the ouput of fun2()?
+```{r}
+rm(list=ls())
+fun <- function(x) {
+  y <- 2
+  function() {
+    c(x, y)
+  }
+}
+fun2 <- fun(1)
+fun2()
+```
+Now we do exactly the same, but we remove fun before callung fun2.
+What happens?
+
+```{r}
+rm(list=ls())
+fun <- function(x) {
+  y <- 2
+  function() {
+    c(x, y)
+  }
+}
+fun2 <- fun(1)
+rm(fun) 
+fun2()
+```
+
+Nothing. The value y <- 2 is still known !?
+This is because during the definition of fun2 the environment is stored:
+
+```{r}
+fun2
+```
+

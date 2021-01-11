@@ -1,0 +1,62 @@
+---
+title: "S4classes"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Source
+
+Examples are taken from
+https://www.datacamp.com/community/tutorials/r-objects-and-classes
+
+## 
+Defining a class template:
+
+```{r}
+setClass("employee", slots=list(name="character", id="numeric", contact="character"))
+```
+
+Creating an instance of the new class:
+```{r}
+obj <- new("employee",name="Steven", id=1002, contact="Freiburg")
+obj
+str(obj)
+```
+
+Working with slots:
+```{r}
+obj@name
+obj@name <- "Werner"
+obj@name
+obj
+```
+
+
+## Creating a method
+The a custom show method for this class is created in the following way:
+```{r}
+setMethod("show",
+          "employee",
+          function(object) {
+            cat("Name:",object@name, "\n")
+            cat("Id:",object@id, "\n")
+            cat("Contact:", object@contact, "\n")
+          }
+)
+obj
+```
+
+
+```{r}
+obj2 <- new("employee",name="Steven2", id=1002, contact="Freiburg")
+c(obj,obj2)
+```

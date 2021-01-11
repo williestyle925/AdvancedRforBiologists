@@ -1,0 +1,126 @@
+---
+title: "Loops"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## for loop
+```{r}
+a <- 1:10
+cumsum <- 0
+for (i in 1:length(a)){
+  cumsum <- cumsum + a[i]
+}
+cumsum
+```
+
+## while loop
+```{r}
+a <- 1:10
+cumsum <- 0
+i <- 1
+while (i <= length(a)){
+  cumsum <- cumsum + a[i]
+  i <- i+1
+}
+i
+cumsum
+```
+
+## repeat loop
+```{r}
+a <- 1:10
+cumsum <- 0
+i <- 1
+repeat {
+  cumsum <- cumsum + a[i]
+  i <- i+1
+  if(i>length(a))
+    break
+}
+i
+cumsum
+```
+
+## Stopping
+```{r}
+a <- 1:10
+cumsum <- 0
+for (i in 1:length(a)){
+  cumsum <- cumsum + a[i]
+  if(cumsum>10)
+    break
+}
+i
+cumsum
+```
+
+## Skipping 
+```{r}
+a <- 1:10
+a[5] <- NA
+cumsum <- 0
+for (i in 1:length(a)){
+  if (is.na(a[i])){
+    print("one iteration skipped")
+    next
+  }
+  cumsum <- cumsum + a[i]
+}
+i
+cumsum
+```
+
+## Nested loops
+```{r}
+mymat <- matrix(nrow=10, ncol=10)
+
+# For each row and for each column, assign values based on position: product of two indexes
+for(i in 1:dim(mymat)[1]) {
+  for(j in 1:dim(mymat)[2]) {
+    mymat[i,j] = i*j
+  }
+}
+
+# Just show the upper left 10x10 chunk
+mymat
+```
+
+## Loops and runtime:
+
+```{r}
+rm(list=ls())
+data <- matrix(rnorm(10000),nrow=1000)
+m <- array()
+start_time <- Sys.time()
+for (i in 1:dim(data)[1]){
+  m[i] <- median(data[i,])
+}
+end_time <- Sys.time()
+end_time - start_time
+
+start_time <- Sys.time()
+m2 <- apply(data,1,median)
+end_time <- Sys.time()
+end_time - start_time
+```
+
+## Hands-on:
+```{r}
+number <- 0
+value  <- 0
+while (value <= 2){
+  number <- number+1
+  value <- rnorm(1)
+}
+number
+```
+

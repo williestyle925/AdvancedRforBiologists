@@ -1,0 +1,122 @@
+---
+title: "Indexing"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(magrittr)
+```
+
+## Indexing
+```{r}
+a <- 1:10
+a[1]
+a[3:4]
+a[a<5]
+a[-1]
+a[-(1:4)]
+a[-(a<5)]
+a[-which(a<5)]
+a[a>=5]
+```
+
+## Assignments
+```{r}
+a <- 1:10
+a[1] <- NA
+a
+a[a<5] <- NA
+a
+a[is.na(a)] <- 0
+a
+```
+
+## Matrices
+```{r}
+A <- matrix(a,nrow=5)
+A
+A[,1]
+A[A<1]
+A[,1]
+```
+
+```{r}
+t(A[,1])
+class(A[,1])
+class(A)
+t(1:10)
+t(t(1:10))
+```
+
+## Indexing of lists
+```{r}
+L <- list(1:4, c(1,4,7),"test")
+L
+L[1]
+L[[1]]
+```
+```{r}
+names(L) <- c("V1","vector2","name")
+L
+L[["name"]]
+L$name
+```
+
+
+## Exceeding the length:
+```{r}
+a <- 1:10
+a[1:13]
+```
+
+## Multiplication 
+```{r}
+a <- 1:5
+a
+b <- rep(1,times=5)
+b
+a*b
+a %*% b
+a %*% t(b)  # an array is a column matrix
+
+```
+
+## Recycling
+When applying an operation to two vectors that requires them to be the same length, R automatically recycles, or repeats, elements of the shorter one, until it is long enough to match the longer Vector. 
+```{r}
+a5 <- 1:5
+a5
+a2 <- 1:2
+a2
+b <- rep(2,times=10) 
+b
+
+a5 + b
+a5 * b
+a2 * b
+```
+## Pipe operator
+The following is the same (magrittr package required):
+```{r}
+a <- 1:10
+
+exp(a)
+a %>% exp
+```
+
+Pipe operators are helpful to prevent many brackets because of nested functions:
+
+```{r}
+round(exp(diff(log(a))), 1)
+
+a %>% log %>% diff %>% exp  %>% round
+a %>% log %>% diff %>% exp  %>% round(1)
+```
+
+

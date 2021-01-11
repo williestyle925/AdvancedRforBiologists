@@ -1,0 +1,714 @@
+---
+title: "Hypothesis Testing in R"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Martin Treppner, Clemens Kreutz, Eva Brombacher, Eva Kohnert"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    fig_width: 15
+    fig_height: 8
+    theme: united
+    toc: yes
+  pdf_document:
+    toc: yes
+bibliography: bibliography.bib
+---
+
+```{r, eval=FALSE, echo=FALSE, message=FALSE}
+# **This only needs to be done once** - the packages will be on your computer once installed, and can be loaded with `library`.
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("tidyverse", "dplyr", "magrittr", "knitr", "Hiiragi2013", "Hmisc", "DESeq2", "airway", "fdrtool"))
+```
+
+# Introduction  
+
+Welcome to *Hypothesis Testing in R*!
+
+Hypothesis testing plays a prominent role in biology, mainly because many 
+decisions in the research process are based on it. Another aspect used, 
+especially in biology, is multiple testing methods where thousands of hypotheses 
+are examined to filter out the most promising ones (@holmes2018modern). 
+
+# Coin tossing example  
+
+To simulate a coin flip experiment in R, we use the `sample` function. But 
+first, we have to think about some of the parameters.
+
+Since we want to generate random numbers, we first need to set a random seed 
+using the `set.seed` function.
+
+Since the random numbers generated in R are not really random but pseudorandom, 
+we can choose any seed for which the same random numbers are always generated. 
+A random seed is often used to ensure the reproducibility of the results.
+
+Here, we "flip" a biased coin which comes up head with probability 0.6 and tails 
+with probability 0.4.
+ 
+```{r}
+set.seed(123)
+#set.seed(59)
+numFlips <- 100
+probHead <- 0.6
+coinFlips <- sample(c("H", "T"), size = numFlips,
+  replace = TRUE, prob = c(probHead, 1 - probHead))
+head(coinFlips)
+```
+
+```{r}
+table(coinFlips)
+```
+
+If the coin were fair, we would expect heads to come up with a probability of 
+0.5.
+
+Suppose someone were to show you the data without giving you any information 
+about whether the coin is fair or not. The assumption is that the coin is fair; 
+that is, it has a 50% chance of landing on heads. Would you reject the 
+hypothesis that the coin is fair based on the data you observed?
+
+To be able to make a statement about this, we can simulate the corresponding 
+sampling distribution, i.e., a binomial distribution.
+
+The probability of observing heads, assuming that the coin is fair, is 50%. 
+We specify this in the argument `prob`. The number of coin flips is defined in 
+the `size` argument. And `k` shows all possible outcomes of seeing heads for the
+100 coin flips.
+
+```{r, message=FALSE}
+library("dplyr")
+k <- 0:numFlips
+numHeads <- sum(coinFlips == "H")
+binomDensity <- tibble(k = k,
+     p = dbinom(k, size = numFlips, prob = 0.5))
+```
+
+If we plot the resulting binomial distribution and look at where our 
+observations lie using a vertical line; we get an idea of how likely the result 
+is under the null hypothesis of a fair coin.
+
+```{r, message=FALSE, warning=FALSE}
+library("ggplot2")
+ggplot(binomDensity,aes(x = k, y = p)) +
+  geom_bar(stat = "identity") +
+  geom_vline(xintercept = numHeads, col = "blue") +
+  theme_minimal()
+```
+
+Next, we divide the set of all possible outcomes k into two subsets. The 
+**rejection region** and the region of no rejection.
+
+Simply put, we fill the rejection region with as many k as possible so that its 
+total probability (under the null hypothesis) is below our threshold $\alpha$
+(@holmes2018modern).
+
+```{r, message=FALSE, warning=FALSE}
+library("dplyr")
+alpha <- 0.05
+binomDensity <- arrange(binomDensity, p) %>%
+        mutate(reject = (cumsum(p) <= alpha))
+
+ggplot(binomDensity, aes(x = k, y = p, col = reject)) +
+  geom_bar(stat = "identity") +
+  scale_colour_manual(
+    values = c(`TRUE` = "red", `FALSE` = "darkgrey")) +
+  geom_vline(xintercept = numHeads, col = "blue") +
+  theme(legend.position = "none") +
+  theme_minimal()
+```
+
+Since this is a common method, there is the `binom.test` function for this 
+purpose.
+
+```{r, message=FALSE, warning=FALSE}
+binom.test(x = numHeads, n = numFlips, p = 0.5)
+```
+
+# The five steps of hypothesis testing  
+
+<div class="alert alert-info">
+
+From @holmes2018modern:
+
+1. Decide on the effect that you are interested in, design a suitable experiment 
+or study, pick a data summary function and test statistic.
+
+2. Set up a null hypothesis, which is a simple, computationally tractable model 
+of reality that lets you compute the null distribution, i.e., the possible 
+outcomes of the test statistic and their probabilities under the assumption 
+that the null hypothesis is true.
+
+3. Decide on the rejection region, i.e., a subset of possible outcomes whose 
+total probability is small.
+
+4. Do the experiment and collect the data; compute the test statistic.
+
+5. Make a decision: reject the null hypothesis if the test statistic is in the 
+rejection region.
+
+</div>
+
+# Types of error  
+
+From @holmes2018modern:
+
+```{r, echo=FALSE}
+dat <- data.frame(c('**Reject null hypothesis**', '**Do not reject**'),
+                          c('Type I error (false positive)', 'True negative'),
+                          c('True positive', 'Type II error (false negative)'))
+            knitr::kable(dat, col.names = c('Test vs reality', 'Null hypothesis is true', '$...$ is false'), caption = 'Types of error in a statistical test.')
+
+## ----mt-typesoferror, fig.keep = 'high', fig.cap = "The trade-off between type I and II errors. The densities represent the distributions of a hypothetical test statistic under either the null or the alternative hypothesis. The peak on the left (light and dark blue plus dark red) represents the test statistic\'s distribution under the null. It integrates to 1. Suppose the decision boundary is the black line and the hypothesis is rejected if the statistic falls to the right. The probability of a false positive (the FPR) is then simply the dark red area. Similarly, if the peak on the right (light and dark red plus dark blue area) is the test statistic\'s distribution under the alternative, the probability of a false negative (the FNR) is the dark blue area.", fig.width = 3.5, fig.height = 2.75, echo = FALSE----
+library("RColorBrewer")
+.localVars = c("pcut", "i1", "i2", "f1", "f2", "px")
+stopifnot(!any(sapply(.localVars, exists, where = .GlobalEnv)))
+
+pcut = 5
+px = seq(0, 11, length.out = 100)
+f1 = dgamma(px, shape = 2, rate = 0.8)
+f2 = dnorm(px, mean = 7, sd = 1.2)
+i1 = which(px <= pcut)
+i2 = i1[length(i1)]:length(px)
+```
+
+Here, the densities represent the distributions of a hypothetical test statistic 
+under either the null or the alternative hypothesis (@holmes2018modern).
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+list(
+  tibble(
+    x = px[c(i1, rev(i1))],
+    y = c(f2[i1], f1[rev(i1)]),
+    ` ` = "TN"),
+  tibble(
+    x = px[c(i1, rev(i1))],
+    y = c(rep(0, length(i1)), f2[rev(i1)]),
+    ` ` = "FN"),
+  tibble(
+    x = px[c(i2, rev(i2))],
+    y = c(f1[i2], f2[rev(i2)]),
+    ` ` = "TP"),
+  tibble(
+    x = px[c(i2, rev(i2))],
+    y = c(rep(0, length(i2)), f1[rev(i2)]),
+    ` ` = "FP")) %>% do.call(rbind, .) %>%
+ggplot(aes(x = x, y = y, fill = ` `)) + geom_polygon() +
+  scale_fill_manual(values = brewer.pal(12, "Paired")[c(2, 1, 6, 5)] %>%
+     `names<-`(c("FN", "TN", "FP", "TP"))) +
+  geom_vline(xintercept = px[i2[1]], col = "black", size = 1) +
+  xlab("test statistic") +
+  theme(legend.position="none") +
+  theme_minimal()
+```
+
+# The t-test
+
+First, we again load a sample data set from R. These are the data from a plant 
+growth experiment in which the yields (as measured by dried weight of plants) 
+were compared between a control and two treatment groups.
+
+```{r}
+data("PlantGrowth")
+head(PlantGrowth)
+```
+
+By visual inspection, we find it difficult to decide if there is a difference 
+between the groups.
+
+```{r, message=FALSE, warning=FALSE}
+library("ggbeeswarm")
+ggplot(PlantGrowth, aes(y = weight, x = group, col = group)) +
+  geom_beeswarm() + theme(legend.position = "none") + theme_minimal()
+```
+
+However, when we compare the control group with the second treatment group in a 
+t-test, we see that the yield is significantly different between the two groups.
+
+```{r}
+tt = with(PlantGrowth,
+          t.test(weight[group =="ctrl"],
+                 weight[group =="trt2"],
+                 var.equal = TRUE)
+          )
+tt
+```
+
+<div class="alert alert-warning">
+**Exercise:**
+
+To better understand the `with` function, perform a t-test for both the 
+comparison of the control group with treatment 1 and treatment 2 and store 
+both results in a list.
+
+```{r}
+t_list = with(PlantGrowth,
+          list(t.test(weight[group =="ctrl"],
+                 weight[group =="trt2"],
+                 var.equal = TRUE),
+          t.test(weight[group =="ctrl"],
+                 weight[group =="trt1"],
+                 var.equal = TRUE)))
+t_list
+```
+</div>
+
+When using a t-test, we assume that the test statistic, under the null 
+hypothesis, follows a t-distribution. Furthermore, we assume that the 
+observations are independent and come from a normal distribution with the same 
+standard deviation.
+
+In our case, at least one of the assumptions seems to be violated. Since we 
+consider the plants' weight, and this must be positive, the assumption of 
+normality is violated. To find out if this makes a difference to our t-test, we 
+can perform a permutation test.
+
+For this, we use again the `with` function and extract with the `filter` 
+function from the `dplyr` packet all weights of the control group and the 
+treatment 2 group.
+
+We then apply the t-test 10000 times, randomly swapping the group membership of 
+the weights each time. Last but not least, we extract the test statistics using
+the `$` symbol.
+
+```{r}
+abs_t_null <- with(
+  dplyr::filter(PlantGrowth, group %in% c("ctrl", "trt2")),
+    replicate(10000,
+      abs(t.test(weight ~ sample(group))$statistic)))
+```
+
+Next, we can look at the distribution of the 10000 test statistics under the 
+null hypothesis and assess into which region our test statistic that we 
+calculated from the data falls.
+
+```{r}
+ggplot(tibble(`|t|` = abs_t_null), aes(x = `|t|`)) +
+  geom_histogram(binwidth = 0.1, boundary = 0) +
+  geom_vline(xintercept = abs(tt$statistic), col = "red")
+```
+
+If we look at how many of the permutation-based test statistics are less than or 
+equal to our data-based test statistic, we get an idea of the p-value to expect.
+
+```{r}
+mean(abs(tt$statistic) <= abs_t_null)
+```
+
+### The independence assumption  
+
+What happens when we duplicate the data?
+
+```{r}
+with(rbind(PlantGrowth, PlantGrowth),
+       t.test(weight[group == "ctrl"],
+              weight[group == "trt2"],
+              var.equal = TRUE))
+```
+
+The means remain the same, but the p-value has become much smaller!
+
+This shows us two things. First, we see that the quality of the t-test depends 
+on the number of cases. Accordingly, as the number of cases increases, we also 
+get more significant results. What is relevant, however, is whether the effect, 
+i.e., the difference between the two groups, is also relevant. The distinction 
+between significance and relevance is particularly important. This effect of an 
+artificially increased number of cases is reflected, for example, in technical 
+replicates. For example, suppose you are examining data from 8 plants but have 
+taken two measurements from each plant. In that case, if you continue to work 
+with the assumption of having 16 observations, you will artificially decrease 
+your p-value (@holmes2018modern).
+
+# P-values  
+
+To understand what problems can arise in connection with the interpretation of 
+p-values, here are some explanations.
+
+### Simulate data distributions of two populations
+
+To demonstrate the variability of the p-value introduced by different sample 
+sizes we simulate two normally distributed data samples with different means. In 
+the context of single cell RNA-seq this would correspond to differentially 
+expressed genes with mean shift of 0.5. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(magrittr)
+library(ggpubr)
+library(ggplot2)
+library(reshape2)
+```
+
+```{r, echo=FALSE, message=FALSE}
+n <- 100000
+popA <- rnorm(n,mean = 0, sd = 1)
+popB <- rnorm(n,mean = 0.5, sd = 1)
+
+x <-  as.data.frame(cbind(popA,popB))
+data <- melt(x)
+ggplot(data,aes(x=value, fill=variable)) + 
+  geom_density(alpha=0.75) + 
+  geom_vline(xintercept=0.5) + 
+  geom_vline(xintercept=0) +
+  ggtitle("") + 
+  scale_x_continuous(name ="Value",breaks=c(-2.5,0,0.5,2.5)) + 
+  scale_y_continuous(name ="Density") + 
+  theme(plot.title = element_text(hjust = 0.5,size=32), 
+        axis.text=element_text(size=22),
+        legend.position="none", 
+        axis.title=element_text(size=32,face="bold")) +
+  theme_minimal() +
+  scale_fill_manual(values = brewer.pal(12, "Paired")[c(1, 5)] %>%
+     `names<-`(c("popA", "popB")))
+```
+
+### Draw samples of ten values at random from each of the populations
+
+We then draw samples of size ten (10 cells) randomly from each of the two populations.
+
+```{r, echo = FALSE, message=FALSE}
+draw_sample = function(n_samples,n_draws,pop){
+  sim = lapply(1:n_samples, function(x){sample(pop,size = n_draws)})
+  return(sim)
+}
+
+test_sample = function(n_samples,sample1,sample2){
+  test = lapply(1:n_samples, function(x){t.test(x= sample1[[x]], y = sample2[[x]])})
+  return(test)
+}
+
+sample_size = c(10,10,10,10)
+
+for(i in sample_size){
+  sampleA = draw_sample(n_samples = length(sample_size),n_draws = i,pop = popA)
+  save(sampleA, file = paste("Fig1_sampleA_",i,".Rdata",sep = ""))
+  sampleB = draw_sample(n_samples = length(sample_size),n_draws = i,pop = popB)
+  save(sampleB, file = paste("Fig1_sampleB_",i,".Rdata",sep = ""))
+  
+  tests = test_sample(n_samples = length(sample_size),sample1 = sampleA, sample2 = sampleB)
+  save(tests, file = paste("Fig1_tests_",i,".Rdata",sep = ""))
+}
+
+
+load(file = paste("Fig1_sampleA_",i,".Rdata",sep = ""))
+load(file = paste("Fig1_sampleB_",i,".Rdata",sep = ""))
+y <- lapply(1:length(sample_size), function(x){melt(cbind(sampleA[[x]],sampleB[[x]]) %>% set_colnames(c("Pop_A","Pop_B")))[,2:3] %>% mutate(Group = rep(paste("P-Value = ",round(tests[[x]]$p.value,3),sep = ""),2*length(sampleB[[x]]))) %>% set_colnames(c("Population","Value","Group"))})
+
+data <- as.data.frame(y[[1]])
+for(i in 2:length(sample_size)){
+  data <- rbind(data, as.data.frame(y[[i]]))
+}
+
+p <- ggplot(data, aes(x=Population, y=Value)) + geom_point(size=2)
+p + facet_grid(.~ Group) + theme(plot.title = element_text(hjust = 0.5,size=32), axis.text=element_text(size=22),legend.position="none", axis.title=element_text(size=32,face="bold"), strip.text.x = element_text(size = 22)) +
+  theme_minimal()
+```
+
+### A larger sample size estimates effect size more precisely.
+
+```{r, echo = FALSE, message=FALSE}
+sample_size <- c(10,30,64,100)
+n_samples <- 1000
+
+for(i in sample_size){
+  sampleA = draw_sample(n_samples = n_samples,n_draws = i,pop = popA)
+  save(sampleA, file = paste("Fig2_sampleA_",i,".Rdata",sep = ""))
+  sampleB = draw_sample(n_samples = n_samples,n_draws = i,pop = popB)
+  save(sampleB, file = paste("Fig2_sampleB_",i,".Rdata",sep = ""))
+  
+  tests = test_sample(n_samples = n_samples,sample1 = sampleA, sample2 = sampleB)
+  save(tests, file = paste("Fig2_tests_",i,".Rdata",sep = ""))
+}
+
+load(file = paste("Fig2_sampleA_",sample_size[1],".Rdata",sep = ""))
+load(file = paste("Fig2_sampleB_",sample_size[1],".Rdata",sep = ""))
+y = lapply(1:n_samples,function(x){melt(cbind(sampleA[[x]],sampleB[[x]]) %>% set_colnames(c("popA","popB")))[,2:3] %>% set_colnames(c("Population","Value"))})
+load(file = paste("Fig2_tests_",sample_size[1],".Rdata",sep = ""))
+p_values = lapply(tests,function(x){x$p.value})
+ci = lapply(tests,function(x){diff(x$conf.int)})
+ci = as.data.frame(unlist(ci))
+
+data <- mutate(ci, Group = rep(paste("Sample Size = ",sample_size[1],sep=""))) %>% set_colnames(c("CI","Group"))
+for(i in 2:length(sample_size)){
+  load(file = paste("Fig2_sampleA_",sample_size[i],".Rdata",sep = ""))
+  load(file = paste("Fig2_sampleB_",sample_size[i],".Rdata",sep = ""))
+  y <- lapply(1:n_samples,function(x){melt(cbind(sampleA[[x]],sampleB[[x]]) %>% set_colnames(c("popA","popB")))[,2:3] %>% set_colnames(c("Population","Value"))})
+  load(file = paste("Fig2_tests_",sample_size[i],".Rdata",sep = ""))
+  p_values <- lapply(tests,function(x){x$p.value})
+  ci <- lapply(tests,function(x){diff(x$conf.int)})
+  ci <- as.data.frame(unlist(ci)) %>% mutate(Group = rep(paste("Sample Size = ",sample_size[i],sep=""))) %>% set_colnames(c("CI","Group"))
+  
+  data <- rbind(data, ci)
+}
+
+data$Group = factor(data$Group, levels=c("Sample Size = 10","Sample Size = 30","Sample Size = 64","Sample Size = 100"))
+p <- ggplot(data, aes(x=CI)) + geom_histogram() + xlab("Width of Confidence Intervalls") + 
+  geom_vline(xintercept = 0.5, colour = "red") +
+  ggtitle("") + scale_x_continuous(breaks=c(0.5,1,2,3)) + scale_y_continuous(name ="Count") + 
+  theme(plot.title = element_text(hjust = 0.5,size=32), axis.text=element_text(size=22),legend.position="none", axis.title=element_text(size=32,face="bold"), strip.text.x = element_text(size = 22))
+p + facet_grid(.~ Group) +
+  theme_minimal()
+```
+
+### Sample size affects the distribution of p values
+
+```{r, echo = FALSE, message=FALSE}
+load(file = paste("Fig2_sampleA_",sample_size[1],".Rdata",sep = ""))
+load(file = paste("Fig2_sampleB_",sample_size[1],".Rdata",sep = ""))
+y <- lapply(1:n_samples,function(x){melt(cbind(sampleA[[x]],sampleB[[x]]) %>% set_colnames(c("popA","popB")))[,2:3] %>% set_colnames(c("Population","Value"))})
+load(file = paste("Fig2_tests_",sample_size[1],".Rdata",sep = ""))
+p_values <- lapply(tests,function(x){x$p.value})
+p_values <- as.data.frame(unlist(p_values))
+
+data <- mutate(p_values, Group = rep(paste("Sample Size = ",sample_size[1],sep=""))) %>% set_colnames(c("P_Value","Group"))
+for(i in 2:length(sample_size)){
+  load(file = paste("Fig2_sampleA_",sample_size[i],".Rdata",sep = ""))
+  load(file = paste("Fig2_sampleB_",sample_size[i],".Rdata",sep = ""))
+  y = lapply(1:n_samples,function(x){melt(cbind(sampleA[[x]],sampleB[[x]]) %>% set_colnames(c("popA","popB")))[,2:3] %>% set_colnames(c("Population","Value"))})
+  load(file = paste("Fig2_tests_",sample_size[i],".Rdata",sep = ""))
+  p_values = lapply(tests,function(x){x$p.value})
+  p_values = as.data.frame(unlist(p_values)) %>% mutate(Group = rep(paste("Sample Size = ",sample_size[i],sep=""))) %>% set_colnames(c("P_Value","Group"))
+  
+  data <- rbind(data, p_values)
+}
+
+data$Group = factor(data$Group, levels=c("Sample Size = 10","Sample Size = 30","Sample Size = 64","Sample Size = 100"))
+p <- ggplot(data, aes(x=P_Value)) + geom_histogram() + xlab("P-Value") + 
+  geom_vline(xintercept = 0.05, colour = "red") +
+  ggtitle("") + scale_x_continuous(breaks=c(0.05,0.25,0.5,1)) + scale_y_continuous(name ="Count") + 
+  theme(plot.title = element_text(hjust = 0.5,size=32), axis.text=element_text(size=22),legend.position="none", axis.title=element_text(size=32,face="bold"), strip.text.x = element_text(size = 22))
+p + facet_grid(.~ Group) +
+  theme_minimal()
+```
+
+These figures are reproduced from: @halsey2015fickle
+
+# Multiple testing  
+
+A prominent example of multiple testing is testing for differential expression 
+of, say, 20,000 genes.
+
+Applying the above table for the different types of errors in hypothesis testing 
+to the multiple testing scenario, we get the following table:
+
+```{r, echo=FALSE}
+dat <- data.frame(c('**Rejected**', '**Not rejected**', '**Total**'),
+                              c('$V$', '$U$', '$m_0$'),
+                              c('$S$', '$T$','$m-m_0$'),
+                              c('$R$', '$m-R$', '$m$'))
+            knitr::kable(dat, col.names = c('Test vs reality', 'Null hypothesis is true', '$...$ is false', 'Total'), caption = 'Types of error in multiple testing. The letters designate the number of
+    times each type of error occurs.')
+```
+
+* $m$: total number of hypotheses
+
+* $m_0$: number of null hypotheses
+
+* $V$: number of false positives (a measure of type I error)
+
+* $T$: number of false negatives (a measure of type II error)
+
+* $S$, $U$: number of true positives and true negatives
+
+* $R$: number of rejections
+
+With the multiple testing methods, we want to make sure that the type I and type 
+II errors are within the limits we have set before (@holmes2018modern).
+
+## The family wise error rate  
+
+The family wise error rate (FWER) is the probability that 
+$V > 0$, i.e., that we make one or more false positive errors 
+(@holmes2018modern).
+
+The formula for the FWER can be calculated by taking the complement
+of making no false positive errors at all $P(V > 0)$.
+
+$$ P(V > 0) = 1 - P(\textrm{no rejecetion of any of } m_0) = 1-(1-\alpha)^{m_0} \rightarrow 1 \quad as \quad m_0  \rightarrow \infty$$
+
+This shows that the higher the number of hypothesis tests, the higher the 
+probability of making a false positive error.
+
+<div class="alert alert-warning">
+**Exercise:**
+
+Prove that the probability does indeed become very close to 1 when $m_0$ 
+is large.
+
+```{r}
+m_0 <- c(5, 10, 25, 50, 100, 1000)
+alpha <- 0.05
+1 - (1 - alpha)^m_0
+```
+</div>
+
+### Bonferroni correction  
+
+How are we to choose the per-hypothesis $\alpha$ if we want FWER control?
+
+Usually, we do not know the true number of correct null hypothesis ($m_0$). 
+However, we know the total number of hypotheses ($m$) we want to test, which 
+gives us an upper limit for $m_0$. Accordingly, we can divide our alpha level 
+(\alpha_{FWER}) by the total number of hypotheses tested 
+($\alpha = \alpha_{FWER} / m$) to conservatively control the FWER.
+
+Here, the red line indicates the alpha level ($\alpha = 0.05$). The alpha level
+that is given by the Bonferroni correction is 
+$0.05 / m = 0.05 / 10000 = 0.000005 = 5e-06$. Hence, if we plot the alpha level 
+against the probability of no false rejection we get the point where both lines 
+intersect at $\alpha = 0.00000513 = 5.13e-06$.
+
+```{r, warning=FALSE, message=FALSE}
+m <- 10000  # We assume that we conduct 10,000 tests
+ggplot(tibble(
+  alpha = seq(0, 7e-6, length.out = 100),
+  p     = 1 - (1 - alpha)^m),
+  aes(x = alpha, y = p)) +  geom_line() +
+  xlab(expression(alpha)) +
+  ylab("Prob( no false rejection )") +
+  geom_hline(yintercept = 0.05, col = "red") +
+  theme_minimal()
+```
+
+## The false discovery rate 
+
+Again, to be somewhat application-oriented, we use an RNA-seq data set called 
+`airway` to illustrate the false discovery rate.
+
+The dataset consists of gene expression data from four primary human airway 
+smooth muscle cell lines with and without treatment with dexamethasone 
+(@holmes2018modern). Based on this data set, we will test whether the genes 
+therein are differentially expressed.
+
+```{r, message=FALSE, warning=FALSE}
+library("DESeq2")
+library("airway")
+data("airway")
+```
+
+```{r}
+head(airway@assays$data$counts)
+```
+
+You will get to know some details about the DESeq method in next week's 
+workshop.
+
+```{r, warning=FALSE, message=FALSE}
+aw   <- DESeqDataSet(se = airway, design = ~ cell + dex)
+aw   <- DESeq(aw)
+awde <- as.data.frame(results(aw)) %>% dplyr::filter(!is.na(pvalue))
+```
+
+```{r}
+results(aw)
+```
+
+### The p-value histogram  
+
+The p-value histogram is often used when many hypotheses have been tested. It is 
+composed of two distributions; that is, it is a mixture of two distributions.
+
+* the p-values resulting from the tests for which the null hypothesis is true.
+
+* the p-values resulting from the tests for which the null hypothesis is not 
+true (@holmes2018modern).
+
+```{r}
+ggplot(awde, aes(x = pvalue)) +
+  geom_histogram(binwidth = 0.025, boundary = 0)
+```
+
+Here, we estimate the proportion of true null hypothesis, which is indicated by 
+the blue line. In the first bin of the histogram, you can see many more p-values 
+than in the rest of the histogram. This is precisely what we expected. Now we 
+try to find out which part of the p-values that are smaller than alpha belong to 
+the true null hypotheses and which ones belong to the correctly rejected null 
+hypotheses.
+
+In the first bin [0, $\alpha$] there are 4772 p-values. Of these, 945 are below 
+the blue line, which means that they are most likely true nulls.
+
+```{r}
+alpha = binw = 0.025
+pi0 = 2 * mean(awde$pvalue > 0.5)
+ggplot(awde,
+  aes(x = pvalue)) + geom_histogram(binwidth = binw, boundary = 0) +
+  geom_hline(yintercept = pi0 * binw * nrow(awde), col = "blue") +
+  geom_vline(xintercept = alpha, col = "red")
+```
+
+Now we can calculate the proportion of false discoveries.
+
+```{r}
+pi0 * alpha / mean(awde$pvalue <= alpha)
+```
+
+The false discovery rate (FDR) if defined as:
+
+$$ FDR = E \left[ \frac{V}{max(R,1)} \right]$$
+
+Again, $V$ is the number of false positives and $R$ is the number of rejections.
+
+### The Benjamini-Hochberg algorithm for controlling the FDR  
+
+The Benjamini-Hochberg algorithm has three steps (@holmes2018modern):
+
+* First, order the p-values in increasing order, $p_{(1)} \dots p_{(m)}$
+* Then for some choice of $\varphi$ (our target FDR), find the largest value of
+$k$ that satisfies: $p_{(k)} \leq \varphi k / m$
+* Finally reject the hypotheses $1, \dots ,k$
+
+```{r}
+phi  <- 0.10 # Target FDR
+awde <- mutate(awde, rank = rank(pvalue))
+m    <- nrow(awde)
+
+ggplot(dplyr::filter(awde, rank <= 7000), aes(x = rank, y = pvalue)) +
+  geom_line() + geom_abline(slope = phi / m, col = "red")
+```
+
+We reject all the p-values to the left of the intersection.
+
+```{r}
+kmax <- with(arrange(awde, rank),
+         last(which(pvalue <= phi * rank / m)))
+kmax
+```
+
+We can extract the row with the p-value that ranked $4099$
+
+```{r}
+awde[which(awde$rank == kmax),]
+```
+
+This is exactly the p-value we get when we multipy the slope with the rank.
+
+```{r}
+(phi / m) * kmax
+```
+
+<div class="alert alert-warning">
+**Exercise:**
+
+Look at the `p.adjust` function and try to reproduce the results from the above
+analysis!
+
+```{r}
+awde <- mutate(awde, p_adjust_function = p.adjust(pvalue, method = "BH"))
+head(awde)
+```
+</div>
+
+The false discovery rate is a less stringent condition than the family-wise 
+error rate, so these methods are more powerful than the others.
+
+# Further reading
+
+# Session info {.unnumbered}
+
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```
+
+

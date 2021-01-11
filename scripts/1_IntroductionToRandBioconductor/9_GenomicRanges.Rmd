@@ -1,0 +1,30 @@
+---
+title: "GenomicRanges"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_documents
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(GenomicRanges)
+```
+
+```{r}
+gr <- GRanges(
+    seqnames = Rle(c("chr1", "chr2", "chr1", "chr3"), c(1, 3, 2, 4)),
+    ranges = IRanges(101:110, end = 111:120, names = head(letters, 10)),
+    strand = Rle(strand(c("-", "+", "*", "+", "-")), c(1, 2, 2, 3, 2)),
+    score = 1:10,
+    GC = seq(1, 0, length=10))
+gr
+```
+
+Look inside a GRanges object:
+```{r}
+str(gr)
+```
+

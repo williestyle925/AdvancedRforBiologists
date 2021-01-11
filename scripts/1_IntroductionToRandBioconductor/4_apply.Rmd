@@ -1,0 +1,32 @@
+---
+title: "apply functions"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+## apply examples:
+
+```{r}
+L <- list(a=1:2, b=2:4) 
+L
+lapply(L, mean) 
+sapply(L, mean)  # returns an array or a matrix if appropriate
+
+M <- matrix(1:20,nrow=5)
+M
+apply(M, 1, length)  # length applied along 1st dim
+apply(M, 2, length)  # length applied along 1st dim 
+apply(M, 1, sum)     # helpful for means, sums, ...
+apply(M, 2, mean)    # helpful for means, sums, ...
+```
+
+## apply and own functions
+```{r}
+L
+sapply(L, function(x) x*2)
+sapply(L, function(x){if(max(x)>3)x else x*2 })
+```

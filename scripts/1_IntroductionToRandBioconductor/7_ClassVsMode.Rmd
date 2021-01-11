@@ -1,0 +1,84 @@
+---
+title: "ClassVsMode"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The class attribute
+
+```{r}
+d <- 1
+attributes(d)
+
+l <- list(a=1)
+attributes(l)
+l$a
+names(l) <- "b"
+l$b
+l$a
+  
+class(l) <- "myOwnClass"
+attributes(l)
+str(l)
+```
+
+
+## Class and mode of objects in R
+
+```{r}
+x <- 1
+print(c(class(x), mode(x)))
+
+x <- 1L  # long integer
+print(c(class(x), mode(x)))
+
+x <- 1:10
+print(c(class(x), mode(x)))
+
+x <- "a"
+print(c(class(x), mode(x)))
+
+x <- letters
+print(c(class(x), mode(x)))
+
+x <- TRUE
+print(c(class(x), mode(x)))
+
+x <- cars # cars is a data.frame
+print(c(class(x), mode(x)))
+
+x <- matrix(cars)
+print(c(class(x), mode(x)))
+
+x <- ls
+print(c(class(x), mode(x)))
+
+```
+
+In fact, there is also storage.mode and typeof, but let's keep it simple.
+```{r}
+x <- 1
+print(c(class(x), mode(x), storage.mode(x), typeof(x)))
+```
+
+
+## Which methods have specific implementations for particular classes?
+```{r}
+methods("summary")
+methods("plot")
+methods("print")
+```
+
+## Which methods are available for a specific class?
+```{r}
+methods(class="lm")
+```
+

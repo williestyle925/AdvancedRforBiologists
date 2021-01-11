@@ -1,0 +1,80 @@
+---
+title: "Dataframes"
+author:
+- affiliation: Institute of Medical Biometry and Statistics, Faculty of Medicine and
+    Medical Center - University of Freiburg
+  name: "Clemens Kreutz, Eva Brombacher, Eva Kohnert, Martin Treppner"
+date: "Jan 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Creating a data.frame
+
+```{r}
+y <- rnorm(20)
+time <- rep(1:5,times=4)
+treat <- as.factor(rep(1:5,each=4))
+
+d <- data.frame(measurement=y,time=time,treatment=treat)
+d
+```
+## Accessing subsets/components
+
+```{r}
+str(d)
+d[,1]
+d[,1:2]
+d[["time"]]
+names(d)
+d$time
+d["time"]
+class(d[["time"]])
+class(d["time"])
+```
+## Statistical analysis using a linear model:
+```{r}
+result <- lm(measurement ~ time + treatment,data=d)
+result
+```
+More comprehensively displaying the result:
+```{r}
+summary(result)
+```
+
+Why is there only one estimate for "time"?
+
+How to access the results (e.g. p-values)?
+
+```{r}
+str(result)
+```
+Hmm. 
+
+```{r}
+str(summary(result))
+```
+Ah!
+
+```{r}
+summary(result)$coefficients
+pvalues <- summary(result)$coefficients[,4]
+pvalues
+```
+
+## Accessing components of the result object
+Summary:
+
+```{r}
+str(result)
+class(result)
+dimnames(result)
+names(result)
+attributes(result)
+fitted.values(result)
+attr(result,"class")
+```
+
